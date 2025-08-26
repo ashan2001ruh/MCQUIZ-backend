@@ -50,9 +50,10 @@ userSubjectRouter.get('/', async (req, res) => {
   }
 });
 
-userSubjectRouter.get('/level/:level', async (req, res) => {
+userSubjectRouter.get('/level/:level(*)', async (req, res) => {
   try {
-    const { level } = req.params;
+    const rawLevel = req.params.level;
+    const level = decodeURIComponent(rawLevel);
     
     const validLevels = ['Scholarship', 'O/L', 'A/L'];
     if (!validLevels.includes(level)) {
