@@ -140,22 +140,55 @@ router.post('/upload-profile-picture', authenticate, upload.single('profilePictu
   }
 });
 
+// Delete profile picture
+router.delete('/delete-profile-picture', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (user.profilePicture && !user.profilePicture.includes('default-profile')) {
+      const picturePath = user.profilePicture.startsWith('uploads/')
+        ? path.join(__dirname, '..', user.profilePicture)
+        : path.join(__dirname, '../uploads/profile-pictures', path.basename(user.profilePicture));
+      if (fs.existsSync(picturePath)) {
+        try { fs.unlinkSync(picturePath); } catch (_) {}
+      }
+    }
+    
+    user.profilePicture = null;
+    await user.save();
+    
+    res.json({ message: 'Profile picture deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting profile picture:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Helper function to get full profile picture URL
 function getFullProfilePictureUrl(relativePath) {
   if (!relativePath) return null;
   
-  // If it's already a full URL (from previous uploads), return as is
+  // If it's already a full URL (from previous uploads), normalize to /api/uploads path
   if (relativePath.startsWith('http')) {
+    // Try to extract the path segment after /uploads/
+    const match = relativePath.match(/\/uploads\/profile-pictures\/([^/?#]+)/i);
+    if (match && match[1]) {
+      return `/api/uploads/profile-pictures/${match[1]}`;
+    }
     return relativePath;
   }
   
-  // If it's a default image or already properly formatted
-  if (relativePath.includes('default-profile')) {
-    return `/uploads/profile-pictures/${relativePath}`;
+  // If it already contains the uploads path, normalize it under /api
+  if (relativePath.includes('uploads/profile-pictures/')) {
+    const normalized = relativePath.replace(/\\/g, '/').replace(/^\//, '');
+    return `/api/${normalized}`;
   }
   
-  // Construct full URL for uploaded images
-  return `http://localhost:3001/uploads/profile-pictures/${path.basename(relativePath)}`;
+  // Fallback: treat as filename
+  return `/api/uploads/profile-pictures/${path.basename(relativePath)}`;
 }
 
 // Serve profile pictures - FIXED route

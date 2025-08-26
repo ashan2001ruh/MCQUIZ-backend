@@ -32,7 +32,8 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files
+app.use(express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files at /uploads
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads'))); // Also serve under /api/uploads for proxy compatibility
 app.use(
   express.urlencoded({
     extended: true,
