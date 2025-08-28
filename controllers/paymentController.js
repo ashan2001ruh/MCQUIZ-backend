@@ -49,7 +49,7 @@ const initializePayment = async (req, res) => {
         merchant_id: merchantId,
         return_url: `${process.env.FRONTEND_URL}/courses`,
         cancel_url: `${process.env.FRONTEND_URL}/pricing`,
-        notify_url: `${process.env.HOST}:${process.env.PORT}/api/payment/notify`,
+        notify_url: `${process.env.HOST}/api/payment/notify`,
         order_id: orderId,
         items: planType,
         amount: formattedAmount,
