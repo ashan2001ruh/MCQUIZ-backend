@@ -70,14 +70,14 @@ connect();
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
 passport.use(
   new GoogleStrategy(
     {
       clientID: CLIENT_ID,
       clientSecret: CLIENT_SECRET,
-      callbackURL: `https://mcquiz.online/api/auth/google/callback`,
+      callbackURL: `https://mcquiz.online/auth/google/callback`,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
