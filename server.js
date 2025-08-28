@@ -77,7 +77,7 @@ passport.use(
     {
       clientID: CLIENT_ID,
       clientSecret: CLIENT_SECRET,
-      callbackURL: `http://${host}:${port}/auth/google/callback`,
+      callbackURL: `https://mcquiz.online/auth/google/callback`,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
