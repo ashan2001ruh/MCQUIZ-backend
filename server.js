@@ -16,6 +16,7 @@ const userDashboardRouter = require('./routes/userDashboardRoutes');
 const userProfileRouter = require('./routes/userProfileRoutes');
 const passwordResetRouter = require('./routes/passwordResetRoutes');
 const feedbackRouter = require('./routes/feedbackRoutes');
+const subscriptionRouter = require('./routes/subscriptionRoutes');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const path = require('path');
@@ -199,6 +200,7 @@ passport.deserializeUser(async (id, done) => {
     app.use('/api/user', userProfileRouter);
     app.use('/api/password-reset', passwordResetRouter);
     app.use('/api/feedback', feedbackRouter);
+    app.use('/api/admin/subscriptions', subscriptionRouter);
 
     // Test endpoint to check database
     app.get('/api/test/database', async (req, res) => {

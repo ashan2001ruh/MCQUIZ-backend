@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema(
       country: { type: String, required: false },
       profilePicture: { type: String, required: false },
       role: { type: String, enum: ['user', 'admin'], default: 'user' }, // User role
-      subscriptionLevel: { type: String, enum: ['Basic', 'School Pro', 'O/L Pro', 'A/L'], default: 'Basic' }, // Subscription level
+      subscriptionLevel: { type: String, enum: ['basic', 'Basic', 'School Pro', 'O/L Pro', 'A/L Pro', 'school', 'ol_pro', 'al_pro'], default: 'Basic' }, // Subscription level
     },
     { timestamps: true }
   );
