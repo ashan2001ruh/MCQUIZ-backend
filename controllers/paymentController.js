@@ -47,8 +47,8 @@ const initializePayment = async (req, res) => {
       success: true,
       paymentData: {
         merchant_id: merchantId,
-        return_url: `${process.env.FRONTEND_URL}/courses`,
-        cancel_url: `${process.env.FRONTEND_URL}/pricing`,
+        return_url: `${process.env.FRONTEND_URL}/user-profile?payment=success&order_id=${orderId}`,
+        cancel_url: `${process.env.FRONTEND_URL}/user-profile?payment=cancelled&order_id=${orderId}`,
         notify_url: `${process.env.HOST}:${process.env.PORT}/api/payment/notify`,
         order_id: orderId,
         items: planType,
@@ -120,8 +120,16 @@ const handlePaymentNotification = async (req, res) => {
       return res.status(404).json({ message: 'Subscription not found' });
     }
     
-    subscription.status = statusMap[status_code] || 'pending';
+    // Update subscription payment status
     subscription.paymentId = payment_id;
+    
+    // If payment is successful, mark as "paid" but keep subscription level change pending admin approval
+    if (statusMap[status_code] === 'success') {
+      subscription.status = 'paid'; // New status: payment successful but pending admin approval
+      console.log(`Payment successful for user ${subscription.userId}, awaiting admin approval for subscription upgrade`);
+    } else {
+      subscription.status = statusMap[status_code] || 'pending';
+    }
     
     await subscription.save();
     
@@ -144,9 +152,129 @@ const getUserSubscription = async (req, res) => {
       endDate: { $gt: new Date() }
     }).sort({ createdAt: -1 });
     
-    res.status(200).json({ subscription });
+    // Also get user's current subscription level
+    const user = await User.findById(req.user.userId).select('subscriptionLevel');
+    
+    res.status(200).json({ 
+      subscription,
+      currentLevel: user?.subscriptionLevel || 'Basic'
+    });
   } catch (error) {
     console.error('Get subscription error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Check payment status for an order
+const checkPaymentStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    const subscription = await Subscription.findOne({
+      orderId,
+      userId: req.user.userId
+    });
+    
+    if (!subscription) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+    
+    res.status(200).json({
+      status: subscription.status,
+      planType: subscription.planType,
+      amount: subscription.amount,
+      createdAt: subscription.createdAt
+    });
+  } catch (error) {
+    console.error('Check payment status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Force update user subscription level (for debugging/manual updates)
+const updateUserSubscription = async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    // Find the latest successful subscription for this user
+    const latestSubscription = await Subscription.findOne({
+      userId: req.user.userId,
+      status: 'success'
+    }).sort({ createdAt: -1 });
+    
+    if (!latestSubscription) {
+      return res.status(404).json({ message: 'No successful subscription found' });
+    }
+    
+    // Update user's subscription level
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { subscriptionLevel: latestSubscription.planType },
+      { new: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.status(200).json({
+      message: 'User subscription level updated successfully',
+      user: {
+        subscriptionLevel: user.subscriptionLevel,
+        planType: latestSubscription.planType
+      }
+    });
+  } catch (error) {
+    console.error('Update user subscription error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get user's subscription status and pending requests
+const getUserSubscriptionStatus = async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const user = await User.findById(req.user.userId).select('subscriptionLevel');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get active subscription
+    const activeSubscription = await Subscription.findOne({
+      userId: req.user.userId,
+      status: 'success',
+      endDate: { $gt: new Date() }
+    }).sort({ createdAt: -1 });
+
+    // Get pending subscription request (including paid awaiting approval)
+    const pendingSubscription = await Subscription.findOne({
+      userId: req.user.userId,
+      status: { $in: ['pending', 'paid'] }
+    }).sort({ createdAt: -1 });
+
+    // Get recent rejected subscription
+    const recentRejection = await Subscription.findOne({
+      userId: req.user.userId,
+      status: 'failed'
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      currentLevel: user.subscriptionLevel,
+      activeSubscription,
+      pendingSubscription,
+      recentRejection
+    });
+  } catch (error) {
+    console.error('Get user subscription status error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -154,5 +282,8 @@ const getUserSubscription = async (req, res) => {
 module.exports = {
   initializePayment,
   handlePaymentNotification,
-  getUserSubscription
+  getUserSubscription,
+  checkPaymentStatus,
+  updateUserSubscription,
+  getUserSubscriptionStatus
 };

@@ -10,7 +10,7 @@ const subscriptionSchema = new mongoose.Schema(
     planType: { 
       type: String, 
       required: true,
-      enum: ['Basic','School Pro','O/L Pro', 'A/L Pro'] 
+      enum: ['basic', 'Basic','School Pro','O/L Pro', 'A/L Pro', 'school', 'ol_pro', 'al_pro'] 
     },
     startDate: { 
       type: Date, 
@@ -34,7 +34,10 @@ const subscriptionSchema = new mongoose.Schema(
     status: { 
       type: String, 
       default: 'pending', 
-      enum: ['pending', 'success', 'failed', 'canceled', 'chargedback'] 
+      enum: ['pending', 'paid', 'success', 'failed', 'canceled', 'chargedback'] 
+    },
+    rejectionReason: {
+      type: String
     }
   },
   { timestamps: true }

@@ -68,7 +68,7 @@ const quizSchema = new mongoose.Schema(
     subscriptionLevel: {
       type: String,
       required: true,
-      enum: ['Basic', 'School Pro', 'O/L Pro', 'A/L Pro'],
+      enum: ['basic', 'Basic', 'School Pro', 'O/L Pro', 'A/L Pro', 'school', 'ol_pro', 'al_pro'],
       default: 'Basic'
     }
   },
